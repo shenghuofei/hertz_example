@@ -10,7 +10,6 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
-	"strings"
 
 	"avatar/config"
 	"avatar/db"
@@ -33,7 +32,7 @@ func main() {
 	hlog.Infof("env: %s, log_level: %s", string(common.Env), config.Cfg.GetString("app.log_level"))
 
 	// build DB manager
-	hlog.Infof("dbs :%s", strings.Join(config.Cfg.GetStringSlice("database"), ","))
+	// hlog.Infof("dbs :%v", config.Cfg.Sub("database").AllSettings())
 	db.InitDB()
 
 	// start prometheus metrics server
@@ -49,6 +48,7 @@ func main() {
 	// create hertz server
 	h := server.Default(server.WithHostPorts(fmt.Sprintf(":%d", config.Cfg.GetInt("app.port"))))
 	h.Use(middleware.RequestLogger(config.Cfg.GetBool("app.print_request_body"))) // 参数确定是否打印 body
+	h.Use(middleware.RecoverResponse())                                           // 捕获handler异常
 
 	// get default write db,global can use DefaultWriteDB value
 	_, err = db.Mgr.GetDefaultWriteDB()

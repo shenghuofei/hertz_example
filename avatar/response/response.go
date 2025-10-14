@@ -1,6 +1,9 @@
 package response
 
-import "github.com/cloudwego/hertz/pkg/app"
+import (
+	"github.com/cloudwego/hertz/pkg/app"
+	"net/http"
+)
 
 type Response[T any] struct {
 	Code    int    `json:"code"`              // 状态码，比如 0 成功，非 0 失败
@@ -8,17 +11,20 @@ type Response[T any] struct {
 	Data    T      `json:"data,omitempty"`    // 成功返回的数据
 }
 
-func Success[T any](c *app.RequestContext, data T, message string) {
-	c.JSON(200, Response[T]{
-		Code:    0,
+// Fail 会触发 panic，用 recover 捕获中止 handler
+func Fail(c *app.RequestContext, code int, message string) {
+	panic(Response[any]{
+		Code:    code,
 		Message: message,
-		Data:    data,
+		Data:    "",
 	})
 }
 
-func Fail(c *app.RequestContext, code int, message string) {
-	c.JSON(200, Response[any]{
-		Code:    code,
+// Success 正常返回
+func Success[T any](c *app.RequestContext, data T, message string) {
+	c.JSON(http.StatusOK, Response[T]{
+		Code:    0,
 		Message: message,
+		Data:    data,
 	})
 }

@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"os"
 	"strings"
 )
@@ -27,4 +28,5 @@ func InitEnv() {
 	default:
 		panic(fmt.Sprintf("未知环境变量 ENV=%s，应为 prod/test", val))
 	}
+	hlog.Infof("current env is: %s", val)
 }

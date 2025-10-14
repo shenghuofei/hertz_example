@@ -11,15 +11,17 @@ database:
     # 优先使用 DSN，如果没有则组合 host/user/password/dbname
     dsn: ""
     hosts:
-      write: "127.0.0.1:3306"
+     write: "127.0.0.1:3306"
 #      reads:
 #        - "127.0.0.1:3306"
 #        - "127.0.0.1:3306"
+#    export DATABASE_DEFAULT_USER=root
+#    export DATABASE_DEFAULT_PASSWORD=123456
 #    user: "{{ env MYSQL_USER }}"           # 可以使用 viper env override
 #    password: "{{ env MYSQL_PASS }}"
-    user: "root"           # 可以使用 viper env override
-    password: "xxxxxxxxx"
-    dbname: "xxxxxxxxxx"
+    user: ""           # 可以使用 viper env override
+    password: ""
+    dbname: "xxxxxxx"
     params:
       parseTime: "true"
       loc: "Local"
@@ -33,14 +35,14 @@ database:
       ping_retries: 3
     read_write_split: true
 
-  db2:
-    driver: mysql
-    dsn: "xxxxxx:xxxxxx@tcp(127.0.0.1:3306)/dbname?parseTime=true&loc=Local&charset=utf8mb4"
-    pool:
-      max_open_conns: 50
-      max_idle_conns: 10
-      conn_max_lifetime_min: 30
-    health:
-      ping_timeout_ms: 500
-      ping_retries: 3
-
+#  db2:
+#    driver: mysql
+#    dsn: "xxxxxx:xxxxxx@tcp(127.0.0.1:3306)/dbname?parseTime=true&loc=Local&charset=utf8mb4"
+#    pool:
+#      max_open_conns: 50
+#      max_idle_conns: 10
+#      conn_max_lifetime_min: 30
+#    health:
+#      ping_timeout_ms: 500
+#      ping_retries: 3
+#

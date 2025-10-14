@@ -1,0 +1,4 @@
+2025/10/14 11:33:42.486853 logger.go:41: [Info] Logger initialized, file=./avatar.log level=info
+2025/10/14 11:33:42.487110 main.go:32: [Info] env: test, log_level: info
+2025/10/14 11:33:42.487413 manager.go:288: [Info] InitDB: default
+2025/10/14 11:33:42.488577 manager.go:290: [Fatal] add db group default err: open write db default err: db ping failed: dial tcp 127.0.0.1:3306: connect: connection refused

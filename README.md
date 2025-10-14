@@ -6,6 +6,7 @@
 4. GORM集成，支持多db及主从分离，及GORM使用
 5. 路由分组
 6. 按照controller(handler)，service，model分层组织项目结构
+7. 统一响应结构体，并使用中间件捕获异常
 
 ### 相关链接
 [hertz官方文档](https://www.cloudwego.io/zh/docs/hertz/tutorials/basic-feature/middleware/basic-auth/)  
