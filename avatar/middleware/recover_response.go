@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"net/http"
+	"runtime/debug"
 
 	"avatar/response"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -12,6 +14,7 @@ func RecoverResponse() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
 		defer func() {
 			if r := recover(); r != nil {
+				hlog.Errorf("[Panic Recovered] %v\nStack Trace:\n%s", r, debug.Stack())
 				if resp, ok := r.(response.Response[any]); ok {
 					// 捕获我们定义的 Fail()
 					ctx.JSON(http.StatusOK, response.Response[any]{
@@ -34,4 +37,3 @@ func RecoverResponse() app.HandlerFunc {
 		ctx.Next(c)
 	}
 }
-
