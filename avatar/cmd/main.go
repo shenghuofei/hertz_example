@@ -2,18 +2,18 @@ package main
 
 import (
 	"avatar/common"
+	"avatar/config"
+	"avatar/db"
 	"avatar/logger"
 	"avatar/middleware"
+	"avatar/router"
 	"context"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
-
-	"avatar/config"
-	"avatar/db"
-	"avatar/router"
+	"time"
 )
 
 func main() {
@@ -46,7 +46,11 @@ func main() {
 	}()
 
 	// create hertz server
-	h := server.Default(server.WithHostPorts(fmt.Sprintf(":%d", config.Cfg.GetInt("app.port"))))
+	h := server.Default(
+		server.WithHostPorts(fmt.Sprintf(":%d", config.Cfg.GetInt("app.port"))),
+		// 优雅退出最大时长
+		server.WithExitWaitTime(5*time.Second),
+	)
 	h.Use(middleware.RequestLogger(config.Cfg.GetBool("app.print_request_body"))) // 参数确定是否打印 body
 	h.Use(middleware.RecoverResponse())                                           // 捕获handler异常
 
