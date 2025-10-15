@@ -3,6 +3,7 @@ package main
 import (
 	"avatar/common"
 	"avatar/config"
+	"avatar/cronjob"
 	"avatar/db"
 	"avatar/logger"
 	"avatar/middleware"
@@ -70,6 +71,12 @@ func main() {
 
 	// register routes (router is separate)
 	router.Register(h)
+
+	// 初始化并注册 Cron 任务
+	cronjob.InitCron()
+	cronjob.AddTasks()
+	cronjob.Start()
+	defer cronjob.Stop()
 
 	// 注册退出前清理逻辑
 	h.OnShutdown = append(h.OnShutdown, func(ctx context.Context) {

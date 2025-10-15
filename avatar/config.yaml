@@ -2,6 +2,7 @@ app:
   env: development
   log_file: "./avatar.log"
   log_level: info
+  metric_port: 9090
   port: 8080
 
 database:

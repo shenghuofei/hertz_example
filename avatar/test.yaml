@@ -3,6 +3,7 @@ app:
   log_file: "./avatar.log"
   log_level: info
   print_request_body: true
+  metric_port: 9090
   port: 8080
 
 database:
