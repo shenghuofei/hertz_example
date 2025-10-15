@@ -5,10 +5,12 @@ go 1.24.3
 require (
 	github.com/cloudwego/hertz v0.10.2
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/hertz-contrib/logger/accesslog v0.0.0-20241107070745-e4ce8c54dd97
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/viper v1.21.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.6.0
+	gorm.io/gorm v1.30.0
 )
 
 require (
@@ -49,5 +51,4 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
-	gorm.io/gorm v1.30.0 // indirect
 )
