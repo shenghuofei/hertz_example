@@ -52,6 +52,8 @@ func main() {
 		// 优雅退出最大时长
 		server.WithExitWaitTime(5*time.Second),
 	)
+
+	// 中间件注册
 	//h.Use(middleware.RequestLogger(config.Cfg.GetBool("app.print_request_body"))) // 参数确定是否打印 body
 	h.Use(accesslog.New(
 		accesslog.WithAccessLogFunc(hlog.CtxInfof),
