@@ -2,7 +2,7 @@
 
 ## 依赖
 - Go 1.20+
-- MySQL（或调整 config.yaml 的 DSN）
+- MySQL
 
 ## 运行
 1. 修改 config.yaml/prod.yaml/test.yaml（或通过环境变量覆盖）
