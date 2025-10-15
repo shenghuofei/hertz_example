@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/hertz-contrib/logger/accesslog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"time"
@@ -51,8 +52,13 @@ func main() {
 		// 优雅退出最大时长
 		server.WithExitWaitTime(5*time.Second),
 	)
-	h.Use(middleware.RequestLogger(config.Cfg.GetBool("app.print_request_body"))) // 参数确定是否打印 body
-	h.Use(middleware.RecoverResponse())                                           // 捕获handler异常
+	//h.Use(middleware.RequestLogger(config.Cfg.GetBool("app.print_request_body"))) // 参数确定是否打印 body
+	h.Use(accesslog.New(
+		accesslog.WithAccessLogFunc(hlog.CtxInfof),
+		accesslog.WithTimeFormat("2006-01-02 15:04:05"),
+		accesslog.WithFormat("${time} ${status} - ${latency} ${method} ${path} ${queryParams} ${ip} ${body} ${bytesSent}"),
+	))
+	h.Use(middleware.RecoverResponse()) // 捕获handler异常
 
 	// get default write db,global can use DefaultWriteDB value
 	_, err = db.Mgr.GetDefaultWriteDB()
