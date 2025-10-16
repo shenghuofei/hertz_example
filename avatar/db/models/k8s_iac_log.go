@@ -24,7 +24,7 @@ var DBK8sIACLogs = &Logs{}
 
 func (log *Logs) GetLogByhost(host string) ([]Logs, error) {
 	var results []Logs
-	logdb, err := db.Mgr.GetWriteDB("k8s-iac")
+	logdb, err := db.Mgr.GetWriteDB("k8siac")
 	if err != nil {
 		return results, err
 	}

@@ -37,18 +37,18 @@ database:
       ping_retries: 3
     read_write_split: true
 
-  k8s-iac:
+  k8siac:
     driver: mysql
     #    dsn: "user:passwd@tcp(127.0.0.1:3306)/dbname?parseTime=true&loc=Local&charset=utf8mb4"
     hosts:
       write: "127.0.0.1:3306"
-    #      reads:
-    #        - "127.0.0.1:3306"
-    #        - "127.0.0.1:3306"
-    #      export DATABASE_DEFAULT_USER=root
-    #      export DATABASE_DEFAULT_PASSWORD=123456
-    #      user: "{{ env MYSQL_USER }}"           # 可以使用 viper env override
-    #      password: "{{ env MYSQL_PASS }}"
+#      reads:
+#        - "127.0.0.1:3306"
+#        - "127.0.0.1:3306"
+#    export DATABASE_DEFAULT_USER=root
+#    export DATABASE_DEFAULT_PASSWORD=123456
+#    user: "{{ env MYSQL_USER }}"           # 可以使用 viper env override
+#    password: "{{ env MYSQL_PASS }}"
     user: ""           # 可以使用 viper env override
     password: ""
     dbname: "xxxxxx"
