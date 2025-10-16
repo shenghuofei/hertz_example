@@ -7,9 +7,10 @@
 ## 运行
 1. 修改 config.yaml/prod.yaml/test.yaml（或通过环境变量覆盖）
 2. 初始化 go module: go mod tidy
-3. 运行
+3. 设置必要的环境变量`v.SetEnvPrefix("AVATAR")`如果使用viper读取的环境变量必须以`AVATAR`开头
+4. 运行
    go run ./cmd/main.go
-4. goland run 配置  
+5. goland run 配置  
    run kind: package  
    package path: avatar/cmd  
    working directory: /xxx.../avatar  
