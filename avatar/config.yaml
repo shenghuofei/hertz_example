@@ -15,6 +15,7 @@ database:
 #      reads:
 #        - "127.0.0.1:3306"
 #        - "127.0.0.1:3306"
+#    环境变量必须以AVATAR开头
 #    user: "{{ env MYSQL_USER }}"           # 可以使用 viper env override
 #    password: "{{ env MYSQL_PASS }}"
     user: "root"           # 可以使用 viper env override
@@ -40,3 +41,9 @@ database:
 #      max_open_conns: 10
 #      max_idle_conns: 2
 
+
+redis:
+  addr: "127.0.0.1:6379"
+  passwd: ""
+  db: 0
+  MinIdleConns: 5

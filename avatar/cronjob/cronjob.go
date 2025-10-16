@@ -1,13 +1,18 @@
 package cronjob
 
 import (
-	"avatar/service"
+	"avatar/db"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/robfig/cron/v3"
 	"time"
 )
 
-var c *cron.Cron
+var (
+	c  *cron.Cron
+	rs *redsync.Redsync
+)
 
 // 定义cron 使用的logger,仍然使用hlog打印日志
 type CronPanicLogger struct{}
@@ -22,6 +27,9 @@ func InitCron() {
 	if c != nil {
 		return
 	}
+	redisClient := db.RedisClient()
+	pool := goredis.NewPool(redisClient)
+	rs = redsync.New(pool)
 	// 支持秒级任务 + panic 捕获
 	c = cron.New(
 		cron.WithSeconds(),
@@ -31,21 +39,10 @@ func InitCron() {
 	)
 }
 
-// AddTask 注册一个定时任务
-func AddTask(spec string, task func()) (cron.EntryID, error) {
-	InitCron() // 确保 cron 初始化
-	id, err := c.AddFunc(spec, task)
-	if err != nil {
-		hlog.Errorf("add cron task err:%v", err)
-		return 0, err
-	}
-	hlog.Infof("Added cron task: %s (id=%d)", spec, id)
-	return id, nil
-}
-
 // Start 启动 Cron
 func Start() {
 	InitCron()
+	AddTasks()
 	c.Start()
 	hlog.Info("Cron started")
 }
@@ -58,13 +55,52 @@ func Stop() {
 	}
 }
 
-// AddTasks 添加一些示例任务,后续添加任务，只需要在这个方法里加AddTask就行了
-func AddTasks() {
-	// 每30秒执行一次
-	AddTask("*/30 * * * * *", func() {
-		hlog.Infof("任务1 每30秒执行一次 %v", time.Now())
+// AddTask 注册一个定时任务,可以多副本执行
+func AddTask(spec string, task func()) (cron.EntryID, error) {
+	InitCron() // 确保 cron 初始化
+	id, err := c.AddFunc(spec, task)
+	if err != nil {
+		hlog.Errorf("add cron task err:%v", err)
+		return 0, err
+	}
+	hlog.Infof("Added cron task: %s (id=%d)", spec, id)
+	return id, nil
+}
+
+// AddTask 注册一个定时任务,只能单副本执行,通过分布式锁确定只能有一个执行,lockTTL需要大于任务执行时间
+func AddUniqTask(spec string, task func(), lockKey string, lockTTL int) (cron.EntryID, error) {
+	InitCron() // 确保 cron 初始化
+
+	id, err := c.AddFunc(spec, func() {
+		// 创建锁（过期时间可以比任务执行最长时间稍长）
+		mutex := rs.NewMutex(lockKey, redsync.WithExpiry(time.Duration(lockTTL)*time.Second))
+
+		// 尝试获取锁
+		if err := mutex.Lock(); err != nil {
+			hlog.Infof("[cronjob] skip task, another instance holds lock: %s", lockKey)
+			return
+		}
+
+		// 确保 panic 时也能释放锁
+		defer func() {
+			if ok, err := mutex.Unlock(); err != nil || !ok {
+				hlog.Errorf("[cronjob] unlock failed for %s: %v, ok=%v", lockKey, err, ok)
+			} else {
+				hlog.Infof("[cronjob] lock released for %s", lockKey)
+			}
+			if r := recover(); r != nil {
+				hlog.Errorf("[cronjob] panic recovered in task %s: %v", lockKey, r)
+			}
+		}()
+
+		// 执行任务
+		task()
 	})
 
-	// 每分钟执行一次，service包中的func可以作为cron来执行
-	AddTask("0 * * * * *", service.CronTaskFunc)
+	if err != nil {
+		hlog.Errorf("add uniq cron task for key: %s err: %v", lockKey, err)
+		return 0, err
+	}
+	hlog.Infof("Added uniq cron task: %s (id=%d, lockKey=%s)", spec, id, lockKey)
+	return id, nil
 }

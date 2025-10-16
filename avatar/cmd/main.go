@@ -13,8 +13,9 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/hertz-contrib/logger/accesslog"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
+	"github.com/hertz-contrib/monitor-prometheus"
+	//"github.com/prometheus/client_golang/prometheus/promhttp"
+	//"net/http"
 	"time"
 )
 
@@ -36,20 +37,22 @@ func main() {
 	// build DB manager
 	// hlog.Infof("dbs :%v", config.Cfg.Sub("database").AllSettings())
 	db.InitDB()
+	db.InitRedis()
 
 	// start prometheus metrics server
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		metric_addr := fmt.Sprintf(":%d", config.Cfg.GetInt("app.metric_port"))
-		hlog.Infof("metrics server on %s", metric_addr)
-		if err = http.ListenAndServe(metric_addr, nil); err != nil && err != http.ErrServerClosed {
-			hlog.Fatalf("metrics server err: %v", err)
-		}
-	}()
+	metric_addr := fmt.Sprintf(":%d", config.Cfg.GetInt("app.metric_port"))
+	//go func() {
+	//	http.Handle("/metrics", promhttp.Handler())
+	//	hlog.Infof("metrics server on %s", metric_addr)
+	//	if err = http.ListenAndServe(metric_addr, nil); err != nil && err != http.ErrServerClosed {
+	//		hlog.Fatalf("metrics server err: %v", err)
+	//	}
+	//}()
 
 	// create hertz server
 	h := server.Default(
 		server.WithHostPorts(fmt.Sprintf(":%d", config.Cfg.GetInt("app.port"))),
+		server.WithTracer(prometheus.NewServerTracer(metric_addr, "/metrics")),
 		// 优雅退出最大时长
 		server.WithExitWaitTime(5*time.Second),
 	)
@@ -73,8 +76,6 @@ func main() {
 	router.Register(h)
 
 	// 初始化并注册 Cron 任务
-	cronjob.InitCron()
-	cronjob.AddTasks()
 	cronjob.Start()
 	defer cronjob.Stop()
 
@@ -82,6 +83,7 @@ func main() {
 	h.OnShutdown = append(h.OnShutdown, func(ctx context.Context) {
 		hlog.Info("closing db connections...")
 		db.Mgr.CloseAll()
+		db.CloseRedis()
 		hlog.Info("cleanup done.")
 	})
 

@@ -121,7 +121,7 @@ func LoadConfig(path string) error {
 	}
 	v.AddConfigPath(".")
 	// 环境变量前缀（可选）
-	//v.SetEnvPrefix("MYAPP")
+	v.SetEnvPrefix("AVATAR")
 	// 把环境变量中的_替换成.，这样可以直接读取环境变量的值
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv() // 自动读取环境变量，如 APP_LOG_LEVEL -> app.log_level
