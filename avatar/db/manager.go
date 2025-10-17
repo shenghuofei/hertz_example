@@ -306,8 +306,8 @@ func buildDSN(instanceName string, host string) string {
 	//	return dsn
 	//}
 
-	user := url.QueryEscape(sub.GetString("user"))
-	pass := url.QueryEscape(sub.GetString("password"))
+	user := sub.GetString("user")
+	pass := sub.GetString("password")
 	db := sub.GetString("dbname")
 
 	// params
