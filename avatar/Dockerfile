@@ -1,4 +1,4 @@
-FROM rocky9.2-go1.24:v2 AS builder
+FROM rocky9.2-go1.24:v3 AS builder
 
 # 工作目录（放源码）
 WORKDIR /build
@@ -15,7 +15,7 @@ RUN /usr/bin/bash -c "./build.sh"
 # ---------------------------
 # 第2阶段：生成最终运行镜像
 # ---------------------------
-FROM rocky9.2-go1.24:v2
+FROM rocky9.2-go1.24:v3
 
 # 创建运行目录
 WORKDIR /data0/app/avatar

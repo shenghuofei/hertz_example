@@ -13,7 +13,12 @@ type Response[T any] struct {
 
 // Fail 会触发 panic，用 recover 捕获中止 handler
 func Fail(c *app.RequestContext, code int, message string) {
-	panic(Response[any]{
+	//panic(Response[any]{
+	//	Code:    code,
+	//	Message: message,
+	//	Data:    "",
+	//})
+	c.AbortWithStatusJSON(http.StatusOK, Response[any]{
 		Code:    code,
 		Message: message,
 		Data:    "",

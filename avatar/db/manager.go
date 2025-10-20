@@ -291,6 +291,11 @@ func InitDB() {
 		}
 		hlog.Infof("db group %s added", name)
 	}
+	// get default write db,global can use DefaultWriteDB value
+	_, err := Mgr.GetDefaultWriteDB()
+	if err != nil {
+		hlog.Fatalf("get default write db err: %v", err)
+	}
 }
 
 // buildDSN 根据 viper 配置构造 DSN

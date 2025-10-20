@@ -20,6 +20,7 @@ func GetK8sIacLogByHost(ctx context.Context, c *app.RequestContext) {
 	if err != nil {
 		hlog.Errorf("get k8s iac log by host %s error: %v", host, err)
 		response.Fail(c, 1, err.Error())
+		return
 	}
 	response.Success(c, res, "ok")
 }

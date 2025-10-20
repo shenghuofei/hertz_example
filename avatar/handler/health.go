@@ -13,6 +13,7 @@ func HealthHandler(ctx context.Context, c *app.RequestContext) {
 	conn, err := db.DefaultWriteDB.DB()
 	if err != nil {
 		c.String(200, "can not connect to db")
+		return
 	}
 	ctx2, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()

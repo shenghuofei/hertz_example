@@ -5,6 +5,7 @@ import (
 	"avatar/config"
 	"avatar/cronjob"
 	"avatar/db"
+	models "avatar/db/models"
 	"avatar/logger"
 	"avatar/middleware"
 	"avatar/router"
@@ -38,6 +39,7 @@ func main() {
 	// hlog.Infof("dbs :%v", config.Cfg.Sub("database").AllSettings())
 	db.InitDB()
 	db.InitRedis()
+	models.GetInitKey()
 
 	// start prometheus metrics server
 	metric_addr := fmt.Sprintf(":%d", config.Cfg.GetInt("app.metric_port"))
@@ -65,12 +67,6 @@ func main() {
 		accesslog.WithFormat("${time} ${status} - ${latency} ${method} ${path} ${queryParams} ${ip} ${body} ${bytesSent}"),
 	))
 	h.Use(middleware.RecoverResponse()) // 捕获handler异常
-
-	// get default write db,global can use DefaultWriteDB value
-	_, err = db.Mgr.GetDefaultWriteDB()
-	if err != nil {
-		hlog.Fatalf("get default write db err: %v", err)
-	}
 
 	// register routes (router is separate)
 	router.Register(h)
