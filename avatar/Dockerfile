@@ -3,14 +3,19 @@ FROM rocky9.2-go1.24:v3 AS builder
 # 工作目录（放源码）
 WORKDIR /build
 
+# 设置国内代理
+ENV GOPROXY=https://goproxy.cn,direct
+
+# 先复制 go.mod 和 go.sum
+COPY go.mod go.sum ./
+
+# 清缓存 + 下载依赖
+RUN go mod download
+
 # 复制项目所有源代码
 COPY . .
 
-# 缓存依赖
-ENV GOPROXY=https://mirrors.aliyun.com/goproxy/,direct
-RUN go mod download
-
-RUN /usr/bin/bash -c "./build.sh"
+RUN ./build.sh
 
 # ---------------------------
 # 第2阶段：生成最终运行镜像
