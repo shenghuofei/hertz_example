@@ -14,8 +14,8 @@ type PageResult[T any] struct {
 }
 
 type PageReq struct {
-	Page     int `default:"1" json:"page"`       // 当前页
-	PageSize int `default:"10" json:"page_size"` // 每页数量
+	Page     int `default:"1" json:"page" query:"page"`            // 当前页
+	PageSize int `default:"10" json:"page_size" query:"page_size"` // 每页数量
 }
 
 func GetPageInfoSafe(pageStr, pageSizeStr string) (int, int, error) {

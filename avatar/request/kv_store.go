@@ -9,6 +9,6 @@ type UpsertKVStore struct {
 }
 
 type ListKVStore struct {
-	KeyName string `json:"key_name"`
+	KeyName string `query:"key_name"`
 	utils.PageReq
 }

@@ -12,7 +12,7 @@ import (
 // HealthHandler ping 默认写库（"default"）
 func ListKVStore(ctx context.Context, c *app.RequestContext) {
 	req := &request.ListKVStore{}
-	if err := c.Bind(req); err != nil {
+	if err := c.BindQuery(req); err != nil {
 		hlog.Errorf("ListKVStore bind param err: %+v", err)
 		response.Fail(c, 1, err.Error())
 		return
