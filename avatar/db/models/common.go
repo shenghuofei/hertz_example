@@ -6,6 +6,8 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	_ "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -65,4 +67,74 @@ func BuildWhere(query *gorm.DB, filters map[string]interface{}) *gorm.DB {
 		}
 	}
 	return query
+}
+
+/*
+	根据map自动生成where查询条件，类似BuildWhere但更强大，使用示例
+
+filters := map[string]interface{}{
+"is_delete": 0,
+"state":     []string{"online", "mounted"},
+"env":       "prod",
+"created_at >=": "2025-10-01",
+"created_at <=": "2025-10-23",
+"os_info LIKE": "%centos%",
+}
+
+query := ApplyFilters(db.Table("my_table_name"), filters)
+
+err := query.Select(`
+
+	SUM(cpu_core) AS cpu_core,
+	SUM(memory) AS memory,
+	COUNT(*) AS host_num,
+	location, env, business, type,
+	? AS date`, date).
+
+Group("location, env, business, type").
+Scan(&results).Error
+*/
+func ApplyFilters(db *gorm.DB, filters map[string]interface{}) *gorm.DB {
+	for field, val := range filters {
+		// 1️⃣ slice => IN 查询
+		v := reflect.ValueOf(val)
+		if v.Kind() == reflect.Slice && !strings.EqualFold(field, "BETWEEN") {
+			db = db.Where(field+" IN ?", val)
+			continue
+		}
+
+		// 2️⃣ BETWEEN 语法（值必须是长度为2的切片）
+		if field == "BETWEEN" {
+			// val = map[string][]interface{}
+			if betweenMap, ok := val.(map[string][]interface{}); ok {
+				for key, arr := range betweenMap {
+					if len(arr) == 2 {
+						db = db.Where(key+" BETWEEN ? AND ?", arr[0], arr[1])
+					}
+				}
+			}
+			continue
+		}
+
+		// 3️⃣ LIKE / >= / <= 等运算符
+		if hasOp(field) {
+			db = db.Where(field+" ?", val)
+			continue
+		}
+
+		// 4️⃣ 默认 =
+		db = db.Where(field+" = ?", val)
+	}
+
+	return db
+}
+
+func hasOp(field string) bool {
+	ops := []string{"LIKE", ">=", "<=", ">", "<", "!="}
+	for _, op := range ops {
+		if len(field) >= len(op) && field[len(field)-len(op):] == op {
+			return true
+		}
+	}
+	return false
 }
