@@ -99,6 +99,9 @@ func ApplyFilters(db *gorm.DB, filters map[string]interface{}) *gorm.DB {
 		// 1️⃣ slice => IN 查询
 		v := reflect.ValueOf(val)
 		if v.Kind() == reflect.Slice && !strings.EqualFold(field, "BETWEEN") {
+			if v.Len() == 0 || (v.Len() == 1 && v.Index(0).IsZero()) {
+				continue // 空切片跳过
+			}
 			db = db.Where(field+" IN ?", val)
 			continue
 		}
@@ -123,6 +126,9 @@ func ApplyFilters(db *gorm.DB, filters map[string]interface{}) *gorm.DB {
 		}
 
 		// 4️⃣ 默认 =
+		if v.Kind() == reflect.String && v.String() == "" {
+			continue // 空字符串跳过
+		}
 		db = db.Where(field+" = ?", val)
 	}
 
