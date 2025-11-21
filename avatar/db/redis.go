@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"sync"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 
 var (
 	client *redis.Client
+	rs     *redsync.Redsync
 	once   sync.Once
 )
 
@@ -22,10 +25,19 @@ func InitRedis() {
 		addr := config.Cfg.GetString("redis.addr")
 		client = redis.NewClient(&redis.Options{
 			Addr:         addr,
-			Password:     config.Cfg.GetString("redis.passwd"),    // 密码（如无可留空）
-			DB:           config.Cfg.GetInt("redis.db"),           // 默认DB
-			MinIdleConns: config.Cfg.GetInt("redis.MinIdleConns"), // 保持的最小空闲连接数
+			Password:     config.Cfg.GetString("redis.passwd"),
+			DB:           config.Cfg.GetInt("redis.db"),
+			MaxRetries:   config.Cfg.GetInt("redis.max_retries"),
+			DialTimeout:  time.Duration(config.Cfg.GetInt("redis.dial_timeout_sec")) * time.Second,
+			ReadTimeout:  time.Duration(config.Cfg.GetInt("redis.read_timeout_sec")) * time.Second,
+			WriteTimeout: time.Duration(config.Cfg.GetInt("redis.write_timeout_sec")) * time.Second,
+			PoolSize:     config.Cfg.GetInt("redis.pool_size"),
+			MinIdleConns: config.Cfg.GetInt("redis.min_idle_conns"),
 		})
+
+		// 初始化分布式锁
+		pool := goredis.NewPool(client)
+		rs = redsync.New(pool)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -47,10 +59,18 @@ func CloseRedis() {
 	}
 }
 
-// Client 返回全局 Redis 客户端
-func RedisClient() *redis.Client {
+// GetRedisClient 返回全局 Redis 客户端
+func GetRedisClient() *redis.Client {
 	if client == nil {
 		panic("redis not initialized")
 	}
 	return client
+}
+
+// GetRedsync 返回分布式锁实例
+func GetRedsync() *redsync.Redsync {
+	if rs == nil {
+		panic("redis pool not initialized")
+	}
+	return rs
 }

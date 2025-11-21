@@ -33,7 +33,7 @@ func main() {
 
 	// init logger
 	logger.Init(config.Cfg.GetString("app.log_file"), config.Cfg.GetString("app.log_level"))
-	hlog.Infof("env: %s, log_level: %s", string(common.Env), config.Cfg.GetString("app.log_level"))
+	hlog.Infof("env: %s, log_level: %s", string(common.CurrentEnv), config.Cfg.GetString("app.log_level"))
 
 	// build DB manager
 	// hlog.Infof("dbs :%v", config.Cfg.Sub("database").AllSettings())

@@ -296,6 +296,9 @@ func InitDB() {
 	if err != nil {
 		hlog.Fatalf("get default write db err: %v", err)
 	}
+
+	// 启动健康检查，暂时先不启用
+	//go Mgr.StartHealthCheck()
 }
 
 // buildDSN 根据 viper 配置构造 DSN
@@ -312,14 +315,28 @@ func buildDSN(instanceName string, host string) string {
 	//}
 
 	user := sub.GetString("user")
+	//hlog.Infof("instnace %s user: %s", instanceName, user)
 	pass := sub.GetString("password")
+	//hlog.Infof("instnace %s pass: %s", instanceName, pass)
 	db := sub.GetString("dbname")
 
 	// params
 	params := url.Values{}
+	// 默认参数，优化连接稳定性
+	params.Set("parseTime", "true")
+	params.Set("loc", "Local")
+	params.Set("charset", "utf8mb4")
+	params.Set("timeout", "10s")
+	params.Set("readTimeout", "30s")
+	params.Set("writeTimeout", "30s")
+
 	p := sub.Sub("params")
 	// Viper会将所有的key转为小写，被转为小写以后，db初始化会报错，这里需要映射回去
-	paramsMap := map[string]string{"parsetime": "parseTime"}
+	paramsMap := map[string]string{
+		"parsetime":    "parseTime",
+		"readtimeout":  "readTimeout",
+		"writetimeout": "writeTimeout",
+	}
 	if p != nil {
 		for _, k := range p.AllKeys() {
 			if key, ok := paramsMap[k]; ok {
@@ -335,7 +352,8 @@ func buildDSN(instanceName string, host string) string {
 		paramStr = "?" + params.Encode()
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s%s", user, pass, host, db, paramStr)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s%s", user, pass, host, db, paramStr)
+	return dsn
 }
 
 // openDBWithPing 创建 DB 并测试连接
@@ -351,6 +369,7 @@ func openDBWithPing(dsn string, dbName string) (*gorm.DB, error) {
 	}
 
 	pingTimeout := time.Duration(config.Cfg.GetInt(fmt.Sprintf("database.%s.health.ping_timeout_ms", dbName))) * time.Millisecond
+	hlog.Infof("ping timeout: %s", pingTimeout)
 	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout)
 	defer cancel()
 
@@ -358,9 +377,28 @@ func openDBWithPing(dsn string, dbName string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("db ping failed: %w", err)
 	}
 
-	sqlDB.SetMaxOpenConns(sub.GetInt("max_open_conns"))
-	sqlDB.SetMaxIdleConns(sub.GetInt("max_idle_conns"))
-	sqlDB.SetConnMaxLifetime(time.Duration(sub.GetInt("conn_max_lifetime_min")) * time.Minute)
+	// 连接池配置
+	maxOpenConns := sub.GetInt("max_open_conns")
+	if maxOpenConns == 0 {
+		maxOpenConns = 100 // 默认值
+	}
+	maxIdleConns := sub.GetInt("max_idle_conns")
+	if maxIdleConns == 0 {
+		maxIdleConns = 10 // 默认值
+	}
+	connMaxLifetime := sub.GetInt("conn_max_lifetime_min")
+	if connMaxLifetime == 0 {
+		connMaxLifetime = 60 // 默认60分钟
+	}
+	connMaxIdleTime := sub.GetInt("conn_max_idle_time_min")
+	if connMaxIdleTime == 0 {
+		connMaxIdleTime = 10 // 默认10分钟
+	}
+
+	sqlDB.SetMaxOpenConns(maxOpenConns)
+	sqlDB.SetMaxIdleConns(maxIdleConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Minute)
+	sqlDB.SetConnMaxIdleTime(time.Duration(connMaxIdleTime) * time.Minute)
 
 	// 用 hlog 作为 GORM 输出
 	slowMs := 1000 // 慢查询阈值 1s
@@ -515,4 +553,50 @@ func (m *Manager) GetDefaultWriteDB() (*gorm.DB, error) {
 		return nil, err
 	}
 	return DefaultWriteDB, nil
+}
+
+// StartHealthCheck 启动健康检查
+func (m *Manager) StartHealthCheck() {
+	ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			m.healthCheck()
+		}
+	}
+}
+
+// healthCheck 检查数据库连接健康状态（仅监控）
+func (m *Manager) healthCheck() {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	//hlog.Info("[mysql healthcheck] start")
+
+	for name, group := range m.groups {
+		// 检查写库
+		if group.Write != nil {
+			if sqlDB, err := group.Write.DB(); err == nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				if err := sqlDB.PingContext(ctx); err != nil {
+					hlog.Warnf("[healthcheck] write db %s ping failed: %v (will auto-reconnect on next query)", name, err)
+				}
+				cancel()
+			}
+		}
+
+		// 检查读库
+		for i, readDB := range group.Reads {
+			if readDB != nil {
+				if sqlDB, err := readDB.DB(); err == nil {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					if err := sqlDB.PingContext(ctx); err != nil {
+						hlog.Warnf("[healthcheck] read db %s[%d] ping failed: %v (will auto-reconnect on next query)", name, i, err)
+					}
+					cancel()
+				}
+			}
+		}
+	}
 }

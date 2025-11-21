@@ -15,16 +15,16 @@ const (
 	//Dev EnvType = "dev"
 )
 
-var Env EnvType // 全局环境变量
+var CurrentEnv EnvType // 全局环境变量
 
 // InitEnv 从环境变量 ENV 读取并初始化全局 Env
 func InitEnv() {
 	val := strings.ToLower(strings.TrimSpace(os.Getenv("ENV")))
 	switch val {
 	case "prod":
-		Env = Prod
+		CurrentEnv = Prod
 	case "test":
-		Env = Test
+		CurrentEnv = Test
 	default:
 		panic(fmt.Sprintf("未知环境变量 ENV=%s，应为 prod/test", val))
 	}

@@ -108,7 +108,11 @@ var Cfg *viper.Viper
 
 func LoadConfig(path string) error {
 	v := viper.New()
-	v.SetConfigName(string(common.Env)) // 不要带后缀
+
+	// 设置默认值
+	setDefaults(v)
+
+	v.SetConfigName(string(common.CurrentEnv)) // 不要带后缀
 	v.SetConfigType("yaml")
 	if path != "" {
 		// conf 搜索路径
@@ -130,4 +134,16 @@ func LoadConfig(path string) error {
 	_ = time.Minute
 
 	return nil
+}
+
+// setDefaults 设置默认配置值
+func setDefaults(v *viper.Viper) {
+	// Redis 默认配置
+	v.SetDefault("redis.db", 1)
+	v.SetDefault("redis.max_retries", 3)
+	v.SetDefault("redis.dial_timeout_sec", 5)
+	v.SetDefault("redis.read_timeout_sec", 3)
+	v.SetDefault("redis.write_timeout_sec", 3)
+	v.SetDefault("redis.pool_size", 10)
+	v.SetDefault("redis.min_idle_conns", 2)
 }

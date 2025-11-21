@@ -68,4 +68,4 @@ redis:
   addr: "127.0.0.1:6379"
   passwd: "xxxxxxxx"
   db: 0
-  MinIdleConns: 5
+  min_idle_conns: 5

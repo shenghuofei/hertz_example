@@ -4,14 +4,12 @@ import (
 	"avatar/db"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/go-redsync/redsync/v4"
-	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/robfig/cron/v3"
 	"time"
 )
 
 var (
-	c  *cron.Cron
-	rs *redsync.Redsync
+	c *cron.Cron
 )
 
 // 定义cron 使用的logger,仍然使用hlog打印日志
@@ -27,9 +25,6 @@ func InitCron() {
 	if c != nil {
 		return
 	}
-	redisClient := db.RedisClient()
-	pool := goredis.NewPool(redisClient)
-	rs = redsync.New(pool)
 	// 支持秒级任务 + panic 捕获
 	c = cron.New(
 		cron.WithSeconds(),
@@ -73,6 +68,7 @@ func AddUniqTask(spec string, task func(), lockKey string, lockTTL int) (cron.En
 
 	id, err := c.AddFunc(spec, func() {
 		// 创建锁（过期时间可以比任务执行最长时间稍长）
+		rs := db.GetRedsync()
 		mutex := rs.NewMutex(lockKey, redsync.WithExpiry(time.Duration(lockTTL)*time.Second))
 
 		// 尝试获取锁
