@@ -61,9 +61,9 @@ func BuildWhere(query *gorm.DB, filters map[string]interface{}) *gorm.DB {
 			if v == "" {
 				continue
 			}
-			query = query.Where(fmt.Sprintf("%s = ?", col), v)
+			query = query.Where(fmt.Sprintf("`%s` = ?", col), v)
 		default:
-			query = query.Where(fmt.Sprintf("%s = ?", col), v)
+			query = query.Where(fmt.Sprintf("`%s` = ?", col), v)
 		}
 	}
 	return query
@@ -102,7 +102,7 @@ func ApplyFilters(db *gorm.DB, filters map[string]interface{}) *gorm.DB {
 			if v.Len() == 0 || (v.Len() == 1 && v.Index(0).IsZero()) {
 				continue // 空切片跳过
 			}
-			db = db.Where(field+" IN ?", val)
+			db = db.Where("`"+field+"` IN ?", val)
 			continue
 		}
 
@@ -112,24 +112,32 @@ func ApplyFilters(db *gorm.DB, filters map[string]interface{}) *gorm.DB {
 			if betweenMap, ok := val.(map[string][]interface{}); ok {
 				for key, arr := range betweenMap {
 					if len(arr) == 2 {
-						db = db.Where(key+" BETWEEN ? AND ?", arr[0], arr[1])
+						db = db.Where("`"+key+"` BETWEEN ? AND ?", arr[0], arr[1])
 					}
 				}
 			}
 			continue
 		}
 
+		// 空值跳过
+		if v.Kind() == reflect.String && v.String() == "" {
+			continue // 空字符串跳过
+		}
+
 		// 3️⃣ LIKE / >= / <= 等运算符
 		if hasOp(field) {
-			db = db.Where(field+" ?", val)
+			colName, op := extractFieldAndOp(field)
+			if strings.EqualFold(op, "LIKE") {
+				if valStr, ok := val.(string); ok && !strings.Contains(valStr, "%") {
+					val = "%" + valStr + "%"
+				}
+			}
+			db = db.Where("`"+colName+"` "+op+" ?", val)
 			continue
 		}
 
 		// 4️⃣ 默认 =
-		if v.Kind() == reflect.String && v.String() == "" {
-			continue // 空字符串跳过
-		}
-		db = db.Where(field+" = ?", val)
+		db = db.Where("`"+field+"` = ?", val)
 	}
 
 	return db
@@ -143,4 +151,15 @@ func hasOp(field string) bool {
 		}
 	}
 	return false
+}
+
+func extractFieldAndOp(field string) (string, string) {
+	ops := []string{"LIKE", ">=", "<=", ">", "<", "!="}
+	for _, op := range ops {
+		if len(field) >= len(op) && field[len(field)-len(op):] == op {
+			colName := strings.TrimSpace(field[:len(field)-len(op)])
+			return colName, op
+		}
+	}
+	return field, "="
 }
